@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { categoryTotals, today } from "../domain/book";
+import { categoryTotals, formatMoney, today } from "../domain/book";
 import { useBook } from "./context";
 import { TransactionList } from "./TransactionList";
 import { LabelledDonut } from "./LabelledDonut";
@@ -155,6 +155,22 @@ export function Insights() {
           </div>
         )}
       </section>
+      {rows.length > 0 && (
+        <section className="category-ranking" aria-label="分类金额柱状图">
+          {rows.map((r) => (
+            <div key={r.id} className="rank-row">
+              <div>
+                <i style={{ background: r.color }} />
+                <span>{r.name}</span>
+                <strong>¥{formatMoney(r.amountMinor)}</strong>
+              </div>
+              <div className="progress">
+                <i style={{ width: `${r.percent}%`, background: r.color }} />
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
       <details
         className="insight-ledger"
         open={ledgerOpen}

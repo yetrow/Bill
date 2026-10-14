@@ -394,6 +394,7 @@ ul {
   text-align: left;
 }
 .category-picker i,
+.rank-row > div:first-child i,
 .category-management i {
   display: inline-block;
   width: 7px;
@@ -755,6 +756,29 @@ ul {
 .center {
   text-align: center;
   margin-top: 12px;
+}
+.category-ranking {
+  margin: 22px 0;
+}
+.rank-row {
+  margin-bottom: 17px;
+}
+.rank-row > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.75rem;
+}
+.rank-row span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.rank-row strong {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.rank-row .progress {
+  height: 3px;
 }
 .storage-card {
   display: flex;

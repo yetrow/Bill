@@ -117,7 +117,20 @@ const { spawn } = require("node:child_process");
         15,
         "future dates are not zero-valued points",
       );
-      assert.equal(await stats.locator(".category-ranking").count(), 0);
+      const bars = stats.getByRole("region", { name: "分类金额柱状图" });
+      assert.equal(
+        await bars.isVisible(),
+        true,
+        "monthly category bars remain visible alongside the daily trend",
+      );
+      assert.deepEqual(
+        await bars.locator(".rank-row strong").allTextContents(),
+        ["¥53.00"],
+      );
+      assert.equal(
+        await bars.locator(".progress i").evaluate((el) => el.style.width),
+        "100%",
+      );
       assert.equal(
         await stats.getByText("午饭", { exact: true }).isVisible(),
         false,
@@ -201,12 +214,17 @@ const { spawn } = require("node:child_process");
       await chart
         .getByRole("button", { name: "2024-02-15 支出 ¥45.00", exact: true })
         .waitFor();
+      assert.deepEqual(
+        await bars.locator(".rank-row strong").allTextContents(),
+        ["¥58.00"],
+        "saving an expense updates both the category bars and the daily trend",
+      );
       await page.reload();
       await page.getByRole("button", { name: "统计", exact: true }).click();
       await chart
         .getByRole("button", { name: "2024-02-15 支出 ¥45.00", exact: true })
         .waitFor();
-      await page.setViewportSize({ width: 393, height: 1050 });
+      await page.setViewportSize({ width: 393, height: 1280 });
       await chart.evaluate((el) => {
         el.scrollLeft = 0;
       });
@@ -217,10 +235,12 @@ const { spawn } = require("node:child_process");
       if (timezoneId === "Asia/Shanghai") {
         await page.screenshot({
           path: "test-results/screenshots/bill-trend.png",
+          fullPage: true,
         });
         await page.emulateMedia({ colorScheme: "dark" });
         await page.screenshot({
           path: "test-results/screenshots/bill-trend-dark.png",
+          fullPage: true,
         });
       }
       await chart
