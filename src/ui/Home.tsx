@@ -56,7 +56,6 @@ export function Home() {
             weekday: "long",
           })}
         </p>
-        <h1>让每一笔，都清楚。</h1>
       </div>
       <section className="summary-card">
         <div>
@@ -149,12 +148,11 @@ export function Home() {
             </p>
           </>
         ) : (
-          <p className="hint">给这个月定个小目标，消费后自动更新。</p>
+          <p className="hint">未设置预算</p>
         )}
       </section>
       <div className="section-heading entry-heading">
         <h2>记下这一笔</h2>
-        <span>简单一点，轻松一点</span>
       </div>
       <TransactionForm />
       <section className="ledger-section">
@@ -191,7 +189,6 @@ export function Home() {
         </label>
         <TransactionList transactions={shown} />
       </section>
-      <p className="page-footnote">生活有账可循，也有余地可留。</p>
     </div>
   );
 }

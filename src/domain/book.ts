@@ -87,6 +87,20 @@ export function formatMoney(n: number) {
     maximumFractionDigits: 2,
   });
 }
+/** Full calendar month; future dates have no observed spending value yet. */
+export function dailyExpenses(book: Book, month: string, asOf = today()) {
+  const days = new Date(`${month}-01T12:00:00`);
+  days.setMonth(days.getMonth() + 1, 0);
+  const totals = new Map<string, number>();
+  for (const t of book.transactions) {
+    if (t.kind === "expense" && t.date.startsWith(`${month}-`))
+      totals.set(t.date, (totals.get(t.date) ?? 0) + t.amountMinor);
+  }
+  return Array.from({ length: days.getDate() }, (_, i) => {
+    const date = `${month}-${String(i + 1).padStart(2, "0")}`;
+    return { date, amountMinor: date > asOf ? null : (totals.get(date) ?? 0) };
+  });
+}
 export function emptyBook(): Book {
   return {
     accounts: [
