@@ -28,8 +28,7 @@ import {
 } from "../platform/native";
 import { useBook } from "./context";
 export function Settings() {
-  const { book, repository, dispatch, run, busy, revision, recovery } =
-    useBook();
+  const { book, repository, dispatch, run, busy, recovery } = useBook();
   const [message, setMessage] = useState(""),
     [working, setWorking] = useState(false),
     [preview, setPreview] = useState<{ book: Book; raw: unknown } | null>(null),
@@ -133,8 +132,7 @@ export function Settings() {
     <div className="content">
       <header className="page-header">
         <div>
-          <p className="eyebrow">MADE TO STAY WITH YOU</p>
-          <h1>你的账本，你做主。</h1>
+          <h1>设置</h1>
         </div>
       </header>
       <section className="card storage-card">
@@ -145,17 +143,13 @@ export function Settings() {
           <h2>
             Bill <span className="version">3.0.1</span>
           </h2>
-          <p>
-            {repository.adapter.name} · {book.transactions.length} 笔交易
-          </p>
-          <p className="hint">本机保存 · 无云同步 · 变更版本 {revision}</p>
+          <p>本机保存 · {book.transactions.length} 笔交易</p>
         </div>
         <ShieldCheck size={19} />
       </section>
       <section className="card settings-block">
         <div className="section-heading">
           <h2>数据与备份</h2>
-          <span>属于你，也能带走</span>
         </div>
         <p className="hint">
           JSON 包含账户、预算和变更历史。导入前会校验，替换前自动保留恢复点。
@@ -177,21 +171,26 @@ export function Settings() {
             <ArrowUpFromLine size={16} />
             导入 JSON
           </button>
-          <button
-            className="secondary"
-            disabled={disabled}
-            onClick={() => void exportData("csv")}
-          >
-            导出 CSV
-          </button>
-          <button
-            className="secondary"
-            disabled={disabled}
-            onClick={() => void exportData("beancount")}
-          >
-            导出 Beancount
-          </button>
         </div>
+        <details className="advanced-options">
+          <summary>更多导出格式</summary>
+          <div className="action-grid">
+            <button
+              className="secondary"
+              disabled={disabled}
+              onClick={() => void exportData("csv")}
+            >
+              导出 CSV
+            </button>
+            <button
+              className="secondary"
+              disabled={disabled}
+              onClick={() => void exportData("beancount")}
+            >
+              导出 Beancount
+            </button>
+          </div>
+        </details>
         <input
           ref={input}
           aria-label="导入备份文件"
@@ -434,9 +433,9 @@ export function Settings() {
           </button>
         </form>
       </section>
-      <section className="card settings-block">
+      <details className="card settings-block history-options">
+        <summary>变更历史</summary>
         <div className="section-heading">
-          <h2>变更历史</h2>
           <button
             disabled={disabled}
             onClick={() =>
@@ -480,7 +479,7 @@ export function Settings() {
             ))}
           </ol>
         )}
-      </section>
+      </details>
       {isNative() && (
         <section className="card settings-block">
           <h2>显示</h2>
@@ -508,11 +507,7 @@ export function Settings() {
           </div>
         </section>
       )}
-      <p className="page-footnote">
-        Bill · 离线记账，无广告，无账户注册。
-        <br />
-        定期导出备份，以防设备丢失或卸载应用。
-      </p>
+      <p className="page-footnote">定期导出备份，以防设备丢失或卸载应用。</p>
     </div>
   );
 }

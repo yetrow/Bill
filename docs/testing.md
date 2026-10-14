@@ -32,10 +32,11 @@ npm run build
 npm run test:mobile
 ```
 
-三个浏览器测试脚本各自启动本机 Vite preview 服务，使用测试账本，不需要个人账本或签名材料：
+四个浏览器测试脚本各自启动本机 Vite preview 服务，使用测试账本，不需要个人账本或签名材料：
 
 - [`tests/mobile.cjs`](../tests/mobile.cjs)：迁移、收支编辑/删除、实时预算、转账、导入恢复、审计、损坏数据门禁、深色模式与字体缩放；原生恢复流程使用桥接模拟。
 - [`tests/ui-layout.cjs`](../tests/ui-layout.cjs)：紧凑摘要、分类旁备注、分类颜色、图表引线标签、分类筛选与备注持久化。
+- [`tests/spending-trend.cjs`](../tests/spending-trend.cjs)：每日支出合计、零消费日、未来日期留空、闰月、月份切换、横向滚动、点选金额、流水展开、实时更新与重启持久化；包含两个时区。
 - [`tests/annual-stats.cjs`](../tests/annual-stats.cjs)：跨年边界、闰日、收支合计、转账排除、分类重置、年份切换和日/周/月回归；包含两个时区。
 
 移动布局覆盖 320、393、430 和 768 像素视口。自动截图保存到 `test-results/screenshots/`，该目录被 Git 忽略；执行测试不会覆盖用于项目展示的 `docs/screenshots/`。

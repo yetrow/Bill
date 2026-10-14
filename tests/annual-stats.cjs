@@ -91,6 +91,7 @@ const { spawn } = require("node:child_process");
         "statistics offers a year period",
       );
       await stats.getByRole("button", { name: "年", exact: true }).click();
+      await stats.locator(".insight-ledger > summary").click();
       const label = stats.locator(".date-navigation strong");
       const total = stats.locator(".donut-total");
       const notes = () => stats.locator(".transaction-note").allTextContents();

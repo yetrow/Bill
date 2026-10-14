@@ -158,7 +158,9 @@ const { spawn } = require("node:child_process");
     }
     await page.setViewportSize({ width: 393, height: 852 });
     fs.mkdirSync("test-results/screenshots", { recursive: true });
-    await page.screenshot({ path: "test-results/screenshots/bill-insights.png" });
+    await page.screenshot({
+      path: "test-results/screenshots/bill-insights.png",
+    });
     await page.getByRole("button", { name: "设置", exact: true }).click();
     const [download] = await Promise.all([
       page.waitForEvent("download"),
@@ -202,6 +204,7 @@ const { spawn } = require("node:child_process");
       .locator(".page:not([hidden])")
       .getByText("已恢复导入前数据。", { exact: true })
       .waitFor();
+    await page.locator(".history-options > summary").click();
     await page
       .getByRole("button", { name: "查看最近 100 次", exact: true })
       .click();
