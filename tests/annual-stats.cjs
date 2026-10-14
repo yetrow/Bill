@@ -1,4 +1,5 @@
 const { chromium } = require("playwright");
+const { expect } = require("@playwright/test");
 const assert = require("node:assert/strict");
 const { spawn } = require("node:child_process");
 
@@ -95,16 +96,74 @@ const { spawn } = require("node:child_process");
       const label = stats.locator(".date-navigation strong");
       const total = stats.locator(".donut-total");
       const notes = () => stats.locator(".transaction-note").allTextContents();
+      const bars = stats.getByRole("region", { name: "分类金额柱状图" });
+      async function assertBars(expected) {
+        assert.equal(await bars.count(), expected.length ? 1 : 0);
+        if (!expected.length) return;
+        assert.equal(await bars.isVisible(), true);
+        assert.deepEqual(
+          await bars.locator(".rank-row span").allTextContents(),
+          expected.map(([name]) => name),
+        );
+        assert.deepEqual(
+          await bars.locator(".rank-row strong").allTextContents(),
+          expected.map(([, amount]) => amount),
+        );
+        assert.deepEqual(
+          await bars
+            .locator(".progress i")
+            .evaluateAll((items) =>
+              items.map((item) => Number.parseFloat(item.style.width)),
+            ),
+          expected.map(([, , percent]) => percent),
+        );
+        await expect
+          .poll(
+            () =>
+              bars.locator(".progress i").evaluateAll(
+                (items, percentages) =>
+                  items.every((item, i) => {
+                    const fill = item.getBoundingClientRect();
+                    const track = item.parentElement.getBoundingClientRect();
+                    const visibleHeight =
+                      Math.min(fill.bottom, track.bottom) -
+                      Math.max(fill.top, track.top);
+                    return (
+                      visibleHeight > 0 &&
+                      fill.height === 3 &&
+                      Math.abs(
+                        (fill.width / track.width) * 100 - percentages[i],
+                      ) < 0.3
+                    );
+                  }),
+                expected.map(([, , percent]) => percent),
+              ),
+            {
+              message:
+                "category fills remain inside their tracks at the correct proportions",
+            },
+          )
+          .toBe(true);
+      }
       assert.equal(await label.innerText(), "2024 年");
       assert.equal(await total.textContent(), "¥100.00");
+      await assertBars([
+        ["餐饮", "¥60.00", 60],
+        ["交通", "¥40.00", 40],
+      ]);
       assert.deepEqual(await notes(), ["年末", "交通", "闰日", "年初"]);
       await stats
         .getByRole("button", { name: "餐饮 60.0%", exact: true })
         .click();
       assert.deepEqual(await notes(), ["年末", "闰日", "年初"]);
+      await assertBars([
+        ["餐饮", "¥60.00", 60],
+        ["交通", "¥40.00", 40],
+      ]);
       await stats.getByRole("button", { name: "上一期", exact: true }).click();
       assert.equal(await label.innerText(), "2023 年");
       assert.deepEqual(await notes(), ["上一年"]);
+      await assertBars([["餐饮", "¥9.00", 100]]);
       assert.equal(
         await stats
           .getByRole("button", { name: "餐饮 100.0%", exact: true })
@@ -132,6 +191,7 @@ const { spawn } = require("node:child_process");
       await stats.getByRole("button", { name: "下一期", exact: true }).click();
       assert.equal(await label.innerText(), "2026 年");
       await stats.getByText("这一期还没有支出", { exact: true }).waitFor();
+      await assertBars([]);
       await stats
         .getByRole("button", { name: "回到本期", exact: true })
         .click();
@@ -145,6 +205,7 @@ const { spawn } = require("node:child_process");
         .click();
       assert.equal(await total.textContent(), "¥500.00");
       assert.deepEqual(await notes(), ["年末工资", "年初工资"]);
+      await assertBars([["工资", "¥500.00", 100]]);
       await stats
         .getByRole("button", { name: "支出占比", exact: true })
         .click();
@@ -157,7 +218,34 @@ const { spawn } = require("node:child_process");
         await stats.getByRole("button", { name: tab, exact: true }).click();
         assert.equal(await total.textContent(), amount);
         assert.equal((await notes()).length, count);
+        await assertBars(
+          tab === "年"
+            ? [
+                ["餐饮", "¥60.00", 60],
+                ["交通", "¥40.00", 40],
+              ]
+            : [["餐饮", "¥20.00", 100]],
+        );
       }
+      await stats.getByRole("button", { name: "月", exact: true }).click();
+      await stats.getByRole("button", { name: "上一期", exact: true }).click();
+      assert.equal(await label.innerText(), "2024 年 1 月");
+      await assertBars([["餐饮", "¥10.00", 100]]);
+      await stats
+        .getByRole("button", { name: "收入占比", exact: true })
+        .click();
+      for (const [tab, amount] of [
+        ["月", "¥200.00"],
+        ["周", "¥200.00"],
+        ["日", "¥200.00"],
+        ["年", "¥500.00"],
+      ]) {
+        await stats.getByRole("button", { name: tab, exact: true }).click();
+        await assertBars([["工资", amount, 100]]);
+      }
+      await stats
+        .getByRole("button", { name: "支出占比", exact: true })
+        .click();
       for (const width of [320, 393, 430, 768]) {
         await page.setViewportSize({ width, height: 852 });
         assert.ok(
