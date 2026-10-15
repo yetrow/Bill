@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { formatMoney } from "../domain/book";
 import { donutLayout } from "./chart-layout";
 
@@ -21,6 +21,7 @@ export function LabelledDonut({
   selected: string | null;
   onSelect: (id: string) => void;
 }) {
+  const descriptionId = useId();
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(309);
   useEffect(() => {
@@ -46,7 +47,12 @@ export function LabelledDonut({
         viewBox={`0 0 ${width} ${height}`}
         role="group"
         aria-label="图表分类及百分比"
+        aria-describedby={descriptionId}
       >
+        <desc id={descriptionId}>
+          本期{kind === "expense" ? "支出" : "收入"} {money}，{rows.length}{" "}
+          个分类
+        </desc>
         <circle
           cx={cx}
           cy={cy}
