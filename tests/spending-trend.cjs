@@ -23,7 +23,11 @@ const { spawn } = require("node:child_process");
       } catch {}
       await new Promise((r) => setTimeout(r, 100));
     }
-    browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
+    browser = await chromium.launch({
+      headless: true,
+      args: ["--no-sandbox"],
+      executablePath: process.env.CHROME_PATH,
+    });
     for (const timezoneId of ["Asia/Shanghai", "America/Los_Angeles"]) {
       const context = await browser.newContext({
         viewport: { width: 393, height: 852 },
@@ -85,6 +89,7 @@ const { spawn } = require("node:child_process");
         1,
         "month view includes scrollable daily expense trend",
       );
+      await chart.locator(".trend-date").first().scrollIntoViewIfNeeded();
       const firstDate = await chart
         .locator(".trend-date")
         .first()
@@ -117,20 +122,45 @@ const { spawn } = require("node:child_process");
         15,
         "future dates are not zero-valued points",
       );
-      const bars = stats.getByRole("region", { name: "分类金额柱状图" });
+      const donut = stats.getByRole("group", { name: "图表分类及百分比" });
+      const total = donut.locator(".donut-total");
       assert.equal(
-        await bars.isVisible(),
+        await donut.isVisible(),
         true,
-        "monthly category bars remain visible alongside the daily trend",
+        "category donut remains visible",
       );
-      assert.deepEqual(
-        await bars.locator(".rank-row strong").allTextContents(),
-        ["¥53.00"],
-      );
-      assert.equal(
-        await bars.locator(".progress i").evaluate((el) => el.style.width),
-        "100%",
-      );
+      assert.equal(await total.textContent(), "¥53.00");
+      async function assertDonutBeforeTrend() {
+        assert.ok(
+          await donut.evaluate((el) =>
+            Boolean(
+              el.compareDocumentPosition(
+                document.querySelector(".trend-card"),
+              ) & Node.DOCUMENT_POSITION_FOLLOWING,
+            ),
+          ),
+          "category donut precedes the extra daily trend in reading order",
+        );
+        const donutBox = await donut.boundingBox();
+        const trendBox = await stats
+          .getByRole("region", { name: "月内每日支出", exact: true })
+          .boundingBox();
+        assert.ok(
+          donutBox.y + donutBox.height <= trendBox.y,
+          "category donut appears above the daily trend on the phone",
+        );
+      }
+      async function assertEmptyDonut() {
+        assert.equal(
+          await donut.isVisible(),
+          true,
+          "empty periods keep the category donut",
+        );
+        assert.equal(await total.textContent(), "¥0.00");
+        assert.ok((await donut.textContent()).includes("0 个分类"));
+        assert.equal(await donut.locator(".donut-label").count(), 0);
+      }
+      await assertDonutBeforeTrend();
       assert.equal(
         await stats.getByText("午饭", { exact: true }).isVisible(),
         false,
@@ -171,6 +201,8 @@ const { spawn } = require("node:child_process");
       }
       await stats.getByRole("button", { name: "上一期", exact: true }).click();
       assert.equal(await chart.getByRole("button").count(), 31);
+      await assertEmptyDonut();
+      await assertDonutBeforeTrend();
       assert.equal(
         await chart.evaluate((el) => el.scrollLeft),
         0,
@@ -188,6 +220,8 @@ const { spawn } = require("node:child_process");
         0,
         "future month has no observed spending",
       );
+      await assertEmptyDonut();
+      await assertDonutBeforeTrend();
       await stats
         .getByRole("button", { name: "回到本期", exact: true })
         .click();
@@ -199,6 +233,7 @@ const { spawn } = require("node:child_process");
         0,
         "income view does not show an expense chart",
       );
+      await assertEmptyDonut();
       await stats
         .getByRole("button", { name: "支出占比", exact: true })
         .click();
@@ -214,17 +249,18 @@ const { spawn } = require("node:child_process");
       await chart
         .getByRole("button", { name: "2024-02-15 支出 ¥45.00", exact: true })
         .waitFor();
-      assert.deepEqual(
-        await bars.locator(".rank-row strong").allTextContents(),
-        ["¥58.00"],
-        "saving an expense updates both the category bars and the daily trend",
+      assert.equal(
+        await total.textContent(),
+        "¥58.00",
+        "saving an expense updates the category donut alongside the daily trend",
       );
+      await assertDonutBeforeTrend();
       await page.reload();
       await page.getByRole("button", { name: "统计", exact: true }).click();
       await chart
         .getByRole("button", { name: "2024-02-15 支出 ¥45.00", exact: true })
         .waitFor();
-      await page.setViewportSize({ width: 393, height: 1280 });
+      await page.setViewportSize({ width: 393, height: 852 });
       await chart.evaluate((el) => {
         el.scrollLeft = 0;
       });
@@ -232,16 +268,23 @@ const { spawn } = require("node:child_process");
         .getByRole("button", { name: "2024-02-01 支出 ¥13.00", exact: true })
         .click();
       fs.mkdirSync("test-results/screenshots", { recursive: true });
+      async function captureFullStatistics(path) {
+        const height = await stats.evaluate((el) => el.scrollHeight + 80);
+        await page.setViewportSize({ width: 393, height });
+        await stats.evaluate((el) => {
+          el.scrollTop = 0;
+        });
+        await page.screenshot({ path, fullPage: true });
+        await page.setViewportSize({ width: 393, height: 852 });
+      }
       if (timezoneId === "Asia/Shanghai") {
-        await page.screenshot({
-          path: "test-results/screenshots/bill-trend.png",
-          fullPage: true,
-        });
+        await captureFullStatistics(
+          "test-results/screenshots/bill-donut-trend.png",
+        );
         await page.emulateMedia({ colorScheme: "dark" });
-        await page.screenshot({
-          path: "test-results/screenshots/bill-trend-dark.png",
-          fullPage: true,
-        });
+        await captureFullStatistics(
+          "test-results/screenshots/bill-donut-trend-dark.png",
+        );
       }
       await chart
         .getByRole("button", { name: "2024-02-15 支出 ¥45.00", exact: true })
@@ -261,11 +304,52 @@ const { spawn } = require("node:child_process");
         !(await stats.getByRole("status").innerText()).includes("今天"),
         "yesterday no longer says today",
       );
+      await page.emulateMedia({ colorScheme: "light" });
+      await stats.locator(".insight-ledger > summary").click();
+      while (
+        await stats
+          .getByRole("button", { name: "删除账单", exact: true })
+          .count()
+      ) {
+        const count = await stats
+          .getByRole("button", { name: "删除账单", exact: true })
+          .count();
+        await stats
+          .getByRole("button", { name: "删除账单", exact: true })
+          .first()
+          .click();
+        await stats
+          .getByRole("button", { name: "确认删除", exact: true })
+          .click();
+        await stats
+          .getByRole("button", { name: "删除账单", exact: true })
+          .nth(count - 1)
+          .waitFor({ state: "detached" });
+      }
+      await assertEmptyDonut();
+      await assertDonutBeforeTrend();
+      assert.equal(
+        await chart
+          .getByRole("button", { name: "2024-02-15 支出 ¥0.00", exact: true })
+          .count(),
+        1,
+        "deleting the final expense resets both charts",
+      );
+      await stats.getByText("这一期还没有支出", { exact: true }).waitFor();
+      if (timezoneId === "Asia/Shanghai") {
+        await captureFullStatistics(
+          "test-results/screenshots/bill-donut-trend-empty.png",
+        );
+        await page.emulateMedia({ colorScheme: "dark" });
+        await captureFullStatistics(
+          "test-results/screenshots/bill-donut-trend-empty-dark.png",
+        );
+      }
       assert.deepEqual(errors, []);
       await context.close();
     }
     console.log(
-      "PASS daily trend: cents, zero days, future gaps, leap month, month navigation, 4 widths, horizontal pan, filtered ledger, income separation, live updates, persistence, 2 timezones",
+      "PASS category donut precedes daily trend: empty ring, last-expense deletion, totals, cents, zero days, future gaps, leap month, month navigation, 4 widths, horizontal pan, filtered ledger, income separation, live updates, persistence, 2 timezones",
     );
   } finally {
     if (browser) await browser.close();

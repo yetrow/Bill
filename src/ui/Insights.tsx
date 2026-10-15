@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { categoryTotals, formatMoney, today } from "../domain/book";
+import { categoryTotals, today } from "../domain/book";
 import { useBook } from "./context";
 import { TransactionList } from "./TransactionList";
 import { LabelledDonut } from "./LabelledDonut";
@@ -106,13 +106,6 @@ export function Insights() {
           <ChevronRight />
         </button>
       </div>
-      {period === "month" && kind === "expense" && (
-        <SpendingTrend
-          key={from.slice(0, 7)}
-          book={book}
-          month={from.slice(0, 7)}
-        />
-      )}
       <section className="card insight-card">
         <div className="mini-tabs">
           <button
@@ -134,20 +127,18 @@ export function Insights() {
             收入占比
           </button>
         </div>
+        <LabelledDonut
+          rows={rows}
+          total={total}
+          kind={kind}
+          selected={selected}
+          onSelect={(id) => {
+            setSelected(selected === id ? null : id);
+            setLedgerOpen(true);
+          }}
+        />
         {rows.length ? (
-          <>
-            <LabelledDonut
-              rows={rows}
-              total={total}
-              kind={kind}
-              selected={selected}
-              onSelect={(id) => {
-                setSelected(selected === id ? null : id);
-                setLedgerOpen(true);
-              }}
-            />
-            <p className="hint center">点击分类筛选流水 · 再次点击显示全部</p>
-          </>
+          <p className="hint center">点击分类筛选流水 · 再次点击显示全部</p>
         ) : (
           <div className="empty">
             <strong>这一期还没有{kind === "expense" ? "支出" : "收入"}</strong>
@@ -155,21 +146,12 @@ export function Insights() {
           </div>
         )}
       </section>
-      {rows.length > 0 && (
-        <section className="category-ranking" aria-label="分类金额柱状图">
-          {rows.map((r) => (
-            <div key={r.id} className="rank-row">
-              <div>
-                <i style={{ background: r.color }} />
-                <span>{r.name}</span>
-                <strong>¥{formatMoney(r.amountMinor)}</strong>
-              </div>
-              <div className="progress">
-                <i style={{ width: `${r.percent}%`, background: r.color }} />
-              </div>
-            </div>
-          ))}
-        </section>
+      {period === "month" && kind === "expense" && (
+        <SpendingTrend
+          key={from.slice(0, 7)}
+          book={book}
+          month={from.slice(0, 7)}
+        />
       )}
       <details
         className="insight-ledger"
