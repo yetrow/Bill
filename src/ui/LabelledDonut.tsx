@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { formatMoney } from "../domain/book";
 import { donutLayout } from "./chart-layout";
 
@@ -14,7 +14,9 @@ export function LabelledDonut({
   kind,
   selected,
   onSelect,
+  active = true,
 }: {
+  active?: boolean;
   rows: Row[];
   total: number;
   kind: "expense" | "income";
@@ -25,15 +27,16 @@ export function LabelledDonut({
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(309);
   useEffect(() => {
+    if (!active) return;
     const observer = new ResizeObserver(([entry]) => {
       if (entry.contentRect.width > 0) setWidth(entry.contentRect.width);
     });
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
-  }, []);
-  const { height, cx, cy, radius, labelWidth, labels } = donutLayout(
-    rows,
-    width,
+  }, [active]);
+  const { height, cx, cy, radius, labelWidth, labels } = useMemo(
+    () => donutLayout(rows, width),
+    [rows, width],
   );
   const segments = rows.map((row, i) => ({
     ...row,

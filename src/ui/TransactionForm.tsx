@@ -6,7 +6,9 @@ import { categoryColors } from "./category-colors";
 export function TransactionForm({
   existing,
   onSaved,
+  asOf,
 }: {
+  asOf?: string;
   existing?: Transaction;
   onSaved?: () => void;
 }) {
@@ -24,10 +26,11 @@ export function TransactionForm({
       book.categories.find((c) => c.kind === "expense" && !c.archived)?.id ??
       "",
   );
-  const [date, setDate] = useState(existing?.date ?? today()),
+  const [chosenDate, setDate] = useState<string | null>(existing?.date ?? null),
     [note, setNote] = useState(existing?.note ?? ""),
     [error, setError] = useState(""),
     [saved, setSaved] = useState(false);
+  const date = chosenDate ?? asOf ?? today();
   const guard = useRef(false);
   const cats = book.categories.filter(
     (c) => c.kind === kind && (!c.archived || c.id === existing?.categoryId),
@@ -217,7 +220,7 @@ export function TransactionForm({
           <input
             aria-label="交易日期"
             type="date"
-            max={today()}
+            max={asOf ?? today()}
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />

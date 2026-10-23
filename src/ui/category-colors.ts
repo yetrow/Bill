@@ -1,4 +1,4 @@
-import { COLORS, type Category } from "../domain/book";
+import { COLORS, type Category } from "../domain/book.ts";
 
 // Legacy books may reuse colors. Give repeated colors a distinct display tint
 // without altering the saved categories or their identifiers.

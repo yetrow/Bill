@@ -23,7 +23,11 @@ const { spawn } = require("node:child_process");
       } catch {}
       await new Promise((r) => setTimeout(r, 100));
     }
-    browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
+    browser = await chromium.launch({
+      headless: true,
+      executablePath: process.env.CHROME_PATH,
+      args: ["--no-sandbox"],
+    });
     const context = await browser.newContext({
       viewport: { width: 393, height: 1100 },
       timezoneId: "Asia/Shanghai",
@@ -153,7 +157,9 @@ const { spawn } = require("node:child_process");
     }
     await page.setViewportSize({ width: 393, height: 1100 });
     await page.waitForTimeout(100);
-    await page.screenshot({ path: "test-results/screenshots/bill-insights.png" });
+    await page.screenshot({
+      path: "test-results/screenshots/bill-insights.png",
+    });
     await page.getByRole("button", { name: "餐饮 32.7%", exact: true }).click();
     assert.equal(
       await page.locator(".page:not([hidden]) .transactions > li").count(),

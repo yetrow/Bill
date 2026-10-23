@@ -21,14 +21,14 @@ function Shell() {
       )}
       <main className="pages">
         <section hidden={tab !== "home"} className="page" aria-label="记账页面">
-          <Home />
+          <Home active={tab === "home"} />
         </section>
         <section
           hidden={tab !== "insights"}
           className="page"
           aria-label="统计页面"
         >
-          <Insights />
+          <Insights active={tab === "insights"} />
         </section>
         <section
           hidden={tab !== "settings"}

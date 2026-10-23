@@ -1,34 +1,19 @@
-import { useEffect, useState } from "react";
-import { dailyExpenses, formatMoney, today, type Book } from "../domain/book";
+import { memo, useMemo, useState } from "react";
+import { dailyExpenses, formatMoney, type Book } from "../domain/book";
 
-export function SpendingTrend({ book, month }: { book: Book; month: string }) {
-  const [asOf, setAsOf] = useState(today);
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    function schedule() {
-      clearTimeout(timer);
-      const now = new Date();
-      const midnight = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() + 1,
-      );
-      timer = setTimeout(refresh, midnight.getTime() - now.getTime() + 50);
-    }
-    function refresh() {
-      setAsOf(today());
-      schedule();
-    }
-    schedule();
-    window.addEventListener("focus", refresh);
-    document.addEventListener("visibilitychange", refresh);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("focus", refresh);
-      document.removeEventListener("visibilitychange", refresh);
-    };
-  }, []);
-  const points = dailyExpenses(book, month, asOf);
+export const SpendingTrend = memo(function SpendingTrend({
+  book,
+  month,
+  asOf,
+}: {
+  book: Book;
+  month: string;
+  asOf: string;
+}) {
+  const points = useMemo(
+    () => dailyExpenses(book, month, asOf),
+    [book, month, asOf],
+  );
   const observed = points.filter((p) => p.amountMinor !== null);
   const [selected, setSelected] = useState(() =>
     observed.length ? observed.length - 1 : null,
@@ -146,4 +131,4 @@ export function SpendingTrend({ book, month }: { book: Book; month: string }) {
       )}
     </section>
   );
-}
+});
