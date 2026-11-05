@@ -3,6 +3,80 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const { spawn } = require("node:child_process");
 
+// Wider fallback fonts must not push a large selected amount outside its card.
+async function checkTrendAmountOverflow(browser) {
+  for (const font of ["system-ui", "monospace"]) {
+    const context = await browser.newContext({
+      timezoneId: "Asia/Shanghai",
+      viewport: { width: 320, height: 1100 },
+    });
+    try {
+      await context.addInitScript(() => {
+        localStorage.setItem(
+          "ledger.snapshot.v2",
+          JSON.stringify({
+            categories: [{ name: "餐饮", color: "#d87962" }],
+            expenses: [
+              {
+                id: "wide-amount",
+                date: "2024-02-15",
+                amount: 9999999.99,
+                category: "餐饮",
+                createdAt: 1,
+              },
+            ],
+            budgets: {},
+          }),
+        );
+      });
+      const page = await context.newPage();
+      await page.clock.install({ time: new Date("2024-02-15T04:00:00Z") });
+      await page.goto("http://127.0.0.1:4177");
+      await page.getByLabel("交易备注").waitFor();
+      await page.evaluate(
+        () => (document.documentElement.style.fontSize = "200%"),
+      );
+      await page
+        .getByRole("navigation", { name: "主导航" })
+        .getByRole("button", { name: "统计", exact: true })
+        .click();
+      // Control the numeric font metrics so Windows also catches the Linux CI bug.
+      await page
+        .locator(".trend-selection")
+        .evaluate((el, font) => (el.style.fontFamily = font), font);
+      const amount = page.locator(".trend-selection strong");
+      await expect(amount).toHaveText("¥9,999,999.99");
+      const geometry = await amount.evaluate((el) => {
+        const card = el.closest(".trend-card");
+        const selection = el.parentElement;
+        const bounds = el.getBoundingClientRect();
+        const container = selection.getBoundingClientRect();
+        return {
+          amount: bounds.width,
+          available: container.width,
+          right: bounds.right,
+          containerRight: container.right,
+          card: card.scrollWidth,
+          cardWidth: card.clientWidth,
+          page: el.closest(".page").scrollWidth,
+          fontSize: parseFloat(getComputedStyle(el).fontSize),
+        };
+      });
+      assert.ok(
+        geometry.amount <= geometry.available &&
+          geometry.right <= geometry.containerRight + 1 &&
+          geometry.card <= geometry.cardWidth &&
+          geometry.page <= 320,
+        `${font}: selected trend amount fits without clipping ${JSON.stringify(geometry)}`,
+      );
+      assert.ok(geometry.fontSize >= 16, "selected amount remains readable");
+      console.log(`PASS 320px 200% ${font}: full selected trend amount fits`);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
 // Catch the old 600px single-column cap, squeezed zoomed columns, clipped
 // amounts/actions and page overflow using actual rendered module geometry.
 async function checkLayouts(browser) {
@@ -309,6 +383,15 @@ async function checkLayouts(browser) {
         }
         assert.deepEqual(errors, [], label);
         console.log(`PASS layout ${label} home/insights/settings`);
+      } catch (error) {
+        const page = context.pages()[0];
+        if (page)
+          await page
+            .screenshot({
+              path: `test-results/screenshots/task3-failure-${width}-${scenario}.png`,
+            })
+            .catch(() => {});
+        throw error;
       } finally {
         await context.close();
       }
@@ -486,6 +569,8 @@ async function checkBudgetRollover(browser) {
       headless: true,
       executablePath: process.env.CHROME_PATH,
     });
+    await checkTrendAmountOverflow(browser);
+    if (process.argv.includes("--trend-overflow-only")) return;
     await checkBudgetRollover(browser);
     if (process.argv.includes("--budget-rollover-only")) return;
     await checkLayouts(browser);

@@ -46,7 +46,8 @@
 }
 
 .summary-card,
-.entry {
+.entry,
+.trend-card {
   container-type: inline-size;
 }
 
@@ -57,6 +58,10 @@
 
 .amount-entry input {
   font-size: clamp(1rem, 9cqi, 2.1rem);
+}
+
+.trend-selection strong {
+  font-size: clamp(1rem, 9cqi, 1.25rem);
 }
 
 @container (max-width: 12rem) {
