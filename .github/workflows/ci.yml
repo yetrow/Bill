@@ -15,8 +15,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npm run format:check
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:mobile
+      - name: Mobile browser regressions
+        id: mobile
+        run: npm run test:mobile
+      - name: Upload browser failure screenshots
+        if: failure() && steps.mobile.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bill-browser-failure
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

@@ -54,6 +54,8 @@ Remove-Item Env:CHROME_PATH
 
 [`tests/view-models.test.ts`](../tests/view-models.test.ts) 使用冻结输入检查展示查询不修改账本，并覆盖收支和转账口径、筛选、稳定排序、闰日及日/周/月/年区间。[`tests/current-date.test.ts`](../tests/current-date.test.ts) 使用注入时钟检查懒订阅、共享定时、午夜、焦点及可见性恢复、最后退订清理和无 DOM 的服务端渲染。
 
+统计页趋势选中金额另有 320px、200% 字体回归，分别使用系统字体与等宽字体检查完整金额及卡片边界，避免 Windows 与 Linux 字体宽度差异掩盖溢出。构建后可单独执行 `node tests/refactor-layout.cjs --trend-overflow-only`。布局矩阵失败时保存当前页面截图；CI 将浏览器测试产物上传为 `Bill-browser-failure`，保留 7 天。
+
 ### 格式与空白检查
 
 ```powershell
@@ -88,7 +90,7 @@ Windows 使用 `gradlew.bat testDebugUnitTest`。测试代码见 [`BillDatabaseT
 
 ## CI 与验证边界
 
-[`ci.yml`](../.github/workflows/ci.yml) 在 push / pull request 上执行前端检查、移动浏览器回归、Android 单元测试和调试 APK 构建。正式签名由[手动工作流](../.github/workflows/release.yml)使用外部 secrets 完成，不把私钥写入仓库。
+[`ci.yml`](../.github/workflows/ci.yml) 在 push / pull request 上执行前端检查、格式检查、移动浏览器回归、Android 单元测试和调试 APK 构建。正式签名由[手动工作流](../.github/workflows/release.yml)使用外部 secrets 完成，不把私钥写入仓库。
 
 浏览器测试不能证明真实 Android 文件选择器、WebView 生命周期或覆盖升级全部正常；Robolectric 也不能替代真机验证。发布前应在保留备份的设备上检查旧版覆盖升级、重启后数据、系统文件导入导出、字体缩放、深色模式和窄屏显示。
 
